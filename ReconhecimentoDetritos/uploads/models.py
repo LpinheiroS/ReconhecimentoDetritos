@@ -9,13 +9,7 @@ from django.core.files.base import ContentFile
 
 # Create your models here.
 ACTION_CHOICES = (
-    ('NO_FILTER', 'no filter'),
-    ('COLORIZED', 'colorized'),
-    ('GRAYSCALE', 'grayscale'),
-    ('BLURRED', 'blurred'),
-    ('BINARY', 'binary'),
-    ('INVERT', 'invert'),
-    ('CANNY', 'canny'),
+    ('CANNY', 'identificar'),
 )
 
 
@@ -27,6 +21,7 @@ class Box:
         self.end_point = (start_point[0] + width_height[0], start_point[1] + width_height[1])
         self.counter = 0
         self.frame_countdown = 0
+
     def overlap(self, start_point, end_point):
         if self.start_point[0] >= end_point[0] or self.end_point[0] <= start_point[0] or \
                 self.start_point[1] >= end_point[1] or self.end_point[1] <= start_point[1]:
@@ -68,7 +63,10 @@ class Upload(models.Model):
 
 
 class Video(models.Model):
-    file = models.FileField(upload_to='files')
+    #file = models.FileField(upload_to='files')
+    file = models.CharField(max_length=50)
+
+
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
 
@@ -76,9 +74,17 @@ class Video(models.Model):
         return str(self.id)
 
     def save(self, *args, **kwargs):
+
+        '''self.file.save(str(self.file), ContentFile(self.recipes), save=False)
+
+        super().save(*args, **kwargs)'''
+
         # open image
         #cap = cv2.VideoCapture(f"../media/files/{self.file.name}")
-        cap = cv2.VideoCapture(0)
+        if(self.file == '0'):
+            cap = cv2.VideoCapture(0)
+        else:
+            cap = cv2.VideoCapture(f"{self.file}")
 
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
