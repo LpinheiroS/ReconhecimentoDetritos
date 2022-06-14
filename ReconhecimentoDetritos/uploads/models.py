@@ -104,7 +104,10 @@ class Video(models.Model):
         while cap.isOpened():
             _, frame = cap.read()
             # Processing of frames are done in gray
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            try:
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            except:
+                break
             # We blur it to minimize reaction to small details
             gray = cv2.GaussianBlur(gray, (5, 5), 0)
             # Need to check if we have a lasqt_frame, if not get it
