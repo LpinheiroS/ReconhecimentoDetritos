@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/ReconhecimentoDetritos.iml" filepath="$PROJECT_DIR$/.idea/ReconhecimentoDetritos.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../TesteDjango/.idea/TesteDjango.iml" filepath="$PROJECT_DIR$/../TesteDjango/.idea/TesteDjango.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../debrisIdentification/.idea/debrisIdentification.iml" filepath="$PROJECT_DIR$/../debrisIdentification/.idea/debrisIdentification.iml" />
     </modules>
   </component>
 </project>

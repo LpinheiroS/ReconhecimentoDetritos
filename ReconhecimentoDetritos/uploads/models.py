@@ -6,6 +6,10 @@ import cv2
 import imutils
 from io import BytesIO
 from django.core.files.base import ContentFile
+from reportlab.pdfgen import canvas
+from django.core.mail import send_mail
+
+
 
 # Create your models here.
 ACTION_CHOICES = (
@@ -41,25 +45,59 @@ class Upload(models.Model):
     def __str__(self):
         return str(self.id)
 
+    def GeneratePDF(lista):
+        try:
+            nome_pdf = "Detritos"
+            pdf = canvas.Canvas('{}.pdf'.format(nome_pdf))
+            x = 720
+            for nome, idade in lista.items():
+                x -= 20
+                pdf.drawString(247, x, '{} : {}'.format(nome, idade))
+            pdf.setTitle(nome_pdf)
+            pdf.setFont("Helvetica-Oblique", 14)
+            pdf.drawString(245, 750, 'Lista de Convidados')
+            pdf.setFont("Helvetica-Bold", 12)
+            pdf.drawString(245, 724, 'Nome e idade')
+            pdf.save()
+            print('{}.pdf criado com sucesso!'.format(nome_pdf))
+        except:
+            print('Erro ao gerar {}.pdf'.format(nome_pdf))
+
+    lista = {'Rafaela': '19', 'Jose': '15', 'Maria': '22', 'Eduardo': '24'}
+
+
+
     def save(self, *args, **kwargs):
-        # open image
+        # abre imagem
         pil_img = Image.open(self.image)
 
-        # convert the image to array and do some processing
+        # converte imagem para um array e faz o processamento
         cv_img = np.array(pil_img)
         img = get_filtered_image(cv_img, self.action)
 
-        # convert back to pil image
+        # converte novamente para uma imagem
         im_pil = Image.fromarray(img)
 
-        # save
+        # salva
         buffer = BytesIO()
         im_pil.save(buffer, format='png')
         image_png = buffer.getvalue()
 
         self.image.save(str(self.image), ContentFile(image_png), save=False)
-
+        """
+        send_mail(
+            'Subject here',
+            'Here is the message.',
+            'lucas.pinheiro28silva@gmail.com',
+            ['lucas.pinheiro-lima@hotmail.com'],
+            fail_silently=False,
+        )
+        """
         super().save(*args, **kwargs)
+
+    GeneratePDF(lista)
+
+
 
 
 class Video(models.Model):
@@ -79,7 +117,6 @@ class Video(models.Model):
 
         super().save(*args, **kwargs)'''
 
-        # open image
         #cap = cv2.VideoCapture(f"../media/files/{self.file.name}")
         if(self.file == '0'):
             cap = cv2.VideoCapture(0)
@@ -92,50 +129,50 @@ class Video(models.Model):
         # cap.set(cv2.CAP_PROP_FRAME_WIDTH, 940)
         # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 780)
 
-        # ret, frame = cap.read()
-        # We will keep the last frame in order to see if there has been any movement
+        ret, frame = cap.read()
+        # Segura o último frame para verificar se houve movimento
         last_frame = None
-        # To build a text string with counting status
+        # Texto que irá exibir o número de objetos
         text = ""
-        # The boxes we want to count moving objects in
+        # Caixas que irão contar os objetos
         boxes = []
         boxes.append(Box((100, 200), (10, 80)))
         boxes.append(Box((300, 350), (10, 80)))
         while cap.isOpened():
             _, frame = cap.read()
-            # Processing of frames are done in gray
+            # Processamento dos frames
             try:
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             except:
                 break
-            # We blur it to minimize reaction to small details
+            # Para minimizar os pequenos detalhes
             gray = cv2.GaussianBlur(gray, (5, 5), 0)
-            # Need to check if we have a lasqt_frame, if not get it
+
             if last_frame is None or last_frame.shape != gray.shape:
                 last_frame = gray
                 continue
-            # Get the difference from last_frame
+            # Pega a diferença entre o frame atual e o último
             delta_frame = cv2.absdiff(last_frame, gray)
             last_frame = gray
-            # Have some threshold on what is enough movement
+            # Threshold - Atribuição dos valores em pixels de acordo com o limite
             thresh = cv2.threshold(delta_frame, 25, 255, cv2.THRESH_BINARY)[1]
-            # This dilates with two iterations
+
             thresh = cv2.dilate(thresh, None, iterations=2)
-            # Returns a list of objects
+            # Retorna uma lista de objetos
             contours = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            # Converts it
+            # Conversão
             contours = imutils.grab_contours(contours)
-            # Loops over all objects found
+            # Looping em todos os objetos
             for contour in contours:
-                # Skip if contour is small (can be adjusted)
+                # Pula se a diferença for pequena (pode ser ajustado)
                 if cv2.contourArea(contour) < 500:
                     continue
-                # Get's a bounding box and puts it on the frame
+                # Destaca o objeto colocando as caixas
                 (x, y, w, h) = cv2.boundingRect(contour)
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                # The text string we will build up
+
                 text = "Objetos:"
-                # Go through all the boxes
+                # Passa por todas as caixas
                 for box in boxes:
                     box.frame_countdown -= 1
                     if box.overlap((x, y), (x + w, y + h)):
@@ -144,12 +181,12 @@ class Video(models.Model):
                         # The number might be adjusted, it is just set based on my settings
                         box.frame_countdown = 20
                     text += " (" + str(box.counter) + " ," + str(box.frame_countdown) + ")"
-            # Set the text string we build up
+            # Insere o texto da quantidade de elementos
             cv2.putText(frame, text, (10, 20), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
-            # Let's also insert the boxes
+            # Insere as caixas
             for box in boxes:
                 cv2.rectangle(frame, box.start_point, box.end_point, (255, 255, 255), 2)
-            # Let's show the frame in our window
+            # Abre a janela
             cv2.imshow("Identificacao de objetos", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
